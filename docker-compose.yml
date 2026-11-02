@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: realsync-notes-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=realsync-notes-super-secret-key-change-in-prod
+      - DATA_DIR=/app/backend/data
+      - FRONTEND_DIST=/app/frontend/dist
+    volumes:
+      - sqlite_data:/app/backend/data
+
+volumes:
+  sqlite_data:
+    driver: local
