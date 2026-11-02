@@ -201,9 +201,28 @@ input, button, textarea, select {
   border-bottom: 1px solid #f3f4f6;
 }
 
+.search-input-wrapper {
+  position: relative;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
 .sidebar-search {
   width: 100%;
-  padding: 10px 14px;
+  padding: 10px 14px 10px 36px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
@@ -242,6 +261,43 @@ input, button, textarea, select {
   cursor: pointer;
   text-align: center;
   margin-right: 4px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+}
+
+.inline-svg {
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  stroke: currentColor;
+}
+
+.pin-icon-badge {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.star-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  stroke: currentColor;
+  vertical-align: middle;
 }
 
 .filter-pill:last-child {

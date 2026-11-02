@@ -1,20 +1,31 @@
 <template>
   <aside class="sidebar" :class="{ 'hidden-mobile': isMobileDetailActive }">
     <div class="sidebar-header">
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="🔍 Search notes or tasks..."
-        class="sidebar-search"
-      />
+      <div class="search-input-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search notes or tasks..."
+          class="sidebar-search"
+        />
+      </div>
+
       <div class="sidebar-actions">
         <button
           class="btn btn-primary btn-block"
           :disabled="isCreating"
           @click="$emit('create-note')"
         >
+          <svg style="width: 16px; height: 16px; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
           <span v-if="isCreating">Creating...</span>
-          <span v-else>+ New Note / Script</span>
+          <span v-else>New Note / Script</span>
         </button>
       </div>
 
@@ -32,21 +43,36 @@
           :class="{ active: filterMode === 'pinned' }"
           @click="filterMode = 'pinned'"
         >
-          📌 Pinned ({{ pinnedCount }})
+          <svg class="inline-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 3l1 7 4 3v2l-7-1-4 6-1-1 2-5-7-1v-2l4-3 1-7z"></path>
+          </svg>
+          Pinned ({{ pinnedCount }})
         </button>
         <button
           class="filter-pill"
           :class="{ active: filterMode === 'pending' }"
           @click="filterMode = 'pending'"
         >
-          ⏳ Incomplete ({{ pendingCount }})
+          <svg class="inline-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          Pending ({{ pendingCount }})
         </button>
       </div>
     </div>
 
     <div class="notes-list-scroll">
       <div v-if="filteredNotes.length === 0" class="empty-state">
-        <div class="empty-state-icon">📝</div>
+        <div class="empty-state-icon">
+          <svg style="width: 42px; height: 42px; stroke: #9ca3af;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
         <p style="font-size: 14px; font-weight: 600;">No notes found</p>
         <p style="font-size: 12px; margin-top: 4px; color: #9ca3af;">Tap "+ New Note" above to begin.</p>
       </div>
@@ -60,7 +86,9 @@
       >
         <div style="display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-pack: justify; -webkit-justify-content: space-between; -webkit-box-align: center; -webkit-align-items: center; align-items: center;">
           <div class="note-card-title">
-            <span v-if="note.is_pinned === 1" style="color: #f59e0b; margin-right: 4px;" title="Pinned">📌</span>
+            <svg v-if="note.is_pinned === 1" class="pin-icon-badge" viewBox="0 0 24 24" fill="#f59e0b" stroke="#d97706" stroke-width="1.5">
+              <path d="M16 3l1 7 4 3v2l-7-1-4 6-1-1 2-5-7-1v-2l4-3 1-7z"></path>
+            </svg>
             {{ note.title || 'Untitled Note' }}
           </div>
           <!-- Quick Pin button -->
@@ -70,7 +98,9 @@
             title="Pin / Unpin Note"
             @click.stop="$emit('toggle-pin', note.id)"
           >
-            ★
+            <svg class="star-icon" viewBox="0 0 24 24" :fill="note.is_pinned === 1 ? '#f59e0b' : 'none'" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
           </button>
         </div>
 

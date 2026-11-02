@@ -2,8 +2,10 @@
   <div class="modal-overlay">
     <div class="auth-card">
       <div class="auth-header">
-        <div class="app-logo-icon" style="margin: 0 auto 10px auto; width: 44px; height: 44px; font-size: 22px;">
-          ✓
+        <div class="app-logo-icon" style="margin: 0 auto 10px auto; width: 48px; height: 48px;">
+          <svg style="width: 26px; height: 26px;" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
         </div>
         <h2 class="auth-title">
           {{ isRegister ? 'Create an Account' : 'Sign in to RealSync' }}

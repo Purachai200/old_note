@@ -3,7 +3,11 @@
     <!-- Header -->
     <header class="app-header">
       <div class="header-brand">
-        <div class="app-logo-icon">✓</div>
+        <div class="app-logo-icon">
+          <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
         <h1 class="app-title">RealSync Notes</h1>
       </div>
 

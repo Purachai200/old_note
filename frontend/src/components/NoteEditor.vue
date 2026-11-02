@@ -1,7 +1,12 @@
 <template>
   <main class="editor-pane" :class="{ 'hidden-mobile': !isMobileDetailActive }">
     <div v-if="!note" class="empty-state" style="margin-top: 100px;">
-      <div class="empty-state-icon">📋</div>
+      <div class="empty-state-icon">
+        <svg style="width: 48px; height: 48px; stroke: #9ca3af;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+        </svg>
+      </div>
       <h3 style="font-size: 18px; font-weight: 600; color: #4b5563;">No Note Selected</h3>
       <p style="font-size: 14px; margin-top: 6px;">Select a note from the left sidebar or create a new one.</p>
     </div>
@@ -14,7 +19,11 @@
             class="btn btn-secondary mobile-back-btn"
             @click="$emit('back-to-list')"
           >
-            ← Back
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back
           </button>
           <span style="font-size: 12px; color: #10b981; font-weight: 600; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center;">
             <span class="status-dot" style="background-color: #10b981;"></span>
@@ -30,7 +39,10 @@
             :class="{ 'btn-pinned': note.is_pinned === 1 }"
             @click="$emit('toggle-pin', note.id)"
           >
-            {{ note.is_pinned === 1 ? '📌 Pinned' : '📍 Pin' }}
+            <svg class="btn-icon" viewBox="0 0 24 24" :fill="note.is_pinned === 1 ? '#d97706' : 'none'" stroke="currentColor" stroke-width="2">
+              <path d="M16 3l1 7 4 3v2l-7-1-4 6-1-1 2-5-7-1v-2l4-3 1-7z"></path>
+            </svg>
+            {{ note.is_pinned === 1 ? 'Pinned' : 'Pin' }}
           </button>
 
           <!-- Copy text button -->
@@ -39,14 +51,26 @@
             style="padding: 6px 12px; font-size: 13px; margin-right: 8px;"
             @click="copyFullContent"
           >
-            {{ copySuccess ? '✓ Copied!' : '📋 Copy All' }}
+            <svg v-if="copySuccess" class="btn-icon text-success" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <svg v-else class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            {{ copySuccess ? 'Copied!' : 'Copy All' }}
           </button>
 
+          <!-- Delete Note button -->
           <button
             class="btn btn-danger"
             style="padding: 6px 12px; font-size: 13px;"
             @click="confirmDeleteNote"
           >
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
             Delete
           </button>
         </div>
@@ -92,14 +116,20 @@
               class="quick-action-btn"
               @click="$emit('toggle-all-items', true)"
             >
-              ✓ Check All
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Check All
             </button>
             <button
               type="button"
               class="quick-action-btn"
               @click="$emit('toggle-all-items', false)"
             >
-              ○ Uncheck All
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9"></circle>
+              </svg>
+              Uncheck All
             </button>
             <button
               v-if="completedCount > 0"
@@ -107,7 +137,11 @@
               class="quick-action-btn text-danger"
               @click="$emit('clear-completed-items')"
             >
-              ✕ Clear Done ({{ completedCount }})
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              Clear Done ({{ completedCount }})
             </button>
           </div>
         </div>
@@ -125,7 +159,11 @@
             class="add-item-btn"
             :disabled="!newItemText.trim()"
           >
-            + Add Task
+            <svg style="width: 16px; height: 16px; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Task
           </button>
         </form>
 
@@ -148,7 +186,9 @@
             @click="toggleItem(item)"
           >
             <div class="custom-checkbox">
-              <span v-if="item.is_completed === 1">✓</span>
+              <svg v-if="item.is_completed === 1" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
             </div>
           </div>
 
@@ -168,7 +208,10 @@
             title="Delete item"
             @click="deleteItem(item.id)"
           >
-            ×
+            <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         </div>
       </div>
@@ -301,7 +344,6 @@ export default {
         });
       }
 
-      // Legacy-safe clipboard copy (supports Safari 9 & modern)
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(textToCopy).then(() => {
           this.flashCopy();
