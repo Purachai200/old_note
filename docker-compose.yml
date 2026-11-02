@@ -1,23 +1,26 @@
-version: '3.8'
-
 services:
-  app:
+  old-note:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: realsync-notes-app
+    container_name: old-note
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - JWT_SECRET=realsync-notes-super-secret-key-change-in-prod
+      - JWT_SECRET=change-this-to-a-random-secret-key
       - DATA_DIR=/app/backend/data
       - FRONTEND_DIST=/app/frontend/dist
     volumes:
-      - sqlite_data:/app/backend/data
-
-volumes:
-  sqlite_data:
-    driver: local
+      # ใช้ bind mount ในโฟลเดอร์ stack ของ Dockge เพื่อให้ backup ข้อมูล SQLite ได้ง่าย
+      - ./data:/app/backend/data
+    deploy:
+      resources:
+        limits:
+          # จำกัดสเปคไม่ให้กินทรัพยากรเซิร์ฟเวอร์ (ใช้จริงเพียง ~40-60 MB)
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          memory: 64M
