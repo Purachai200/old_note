@@ -8,6 +8,28 @@
     <meta name="apple-mobile-web-app-title" content="RealSync Notes" />
     <meta name="format-detection" content="telephone=no" />
     <title>RealSync Notes & Checklist</title>
+    <!-- Visual on-screen Error Catching for iPad Mini 1 (iOS 9 Safari) -->
+    <script>
+      window.onerror = function (msg, url, line, col, error) {
+        var box = document.getElementById('debug-error-box');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'debug-error-box';
+          box.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fee2e2;color:#991b1b;border:2px solid #ef4444;padding:12px;z-index:999999;font-family:monospace;font-size:13px;word-break:break-all;max-height:50vh;overflow-y:auto;box-shadow:0 4px 6px rgba(0,0,0,0.1);';
+          box.innerHTML = '<strong style="color:#b91c1c;">[JS Error on iPad]</strong><br>';
+          if (document.body) {
+            document.body.appendChild(box);
+          } else {
+            document.documentElement.appendChild(box);
+          }
+        }
+        var p = document.createElement('div');
+        p.style.marginTop = '6px';
+        p.textContent = msg + ' at ' + (url ? url.split('/').pop() : '') + ':' + line + ':' + col;
+        box.appendChild(p);
+        return false;
+      };
+    </script>
   </head>
   <body>
     <div id="app"></div>

@@ -7,14 +7,14 @@ export default defineConfig({
   plugins: [
     vue(),
     legacy({
-      // CRITICAL: Explicitly target iOS 9 Safari (iPad Mini 1st Gen)
-      targets: ['ios >= 9', 'safari >= 9', 'chrome >= 49'],
-      // Inject essential runtimes and polyfills for iOS 9 Safari
+      // Explicitly target iOS 9 Safari (iPad Mini 1st Gen) and older browsers
+      targets: ['ios_saf >= 9', 'safari >= 9', 'chrome >= 49', 'ie >= 11'],
+      // Core polyfills for Safari 9 (Promise, Symbol, Map, Set, Object.assign, etc.)
       additionalLegacyPolyfills: [
         'regenerator-runtime/runtime',
+        'core-js/stable',
         'proxy-polyfill'
       ],
-      // Polyfill modern JS constructs in the modern/legacy builds
       modernPolyfills: true,
       renderModernChunks: true
     })
