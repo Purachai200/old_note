@@ -29,6 +29,7 @@ db.exec(`
     user_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     content TEXT DEFAULT '',
+    is_pinned INTEGER NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -47,5 +48,16 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
   CREATE INDEX IF NOT EXISTS idx_checklist_note_id ON checklist_items(note_id);
 `);
+
+// Auto-migrate column is_pinned if table already existed without it
+try {
+  const columns = db.prepare("PRAGMA table_info(notes)").all();
+  const hasPinned = columns.some(c => c.name === 'is_pinned');
+  if (!hasPinned) {
+    db.prepare("ALTER TABLE notes ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0").run();
+  }
+} catch (e) {
+  // column already exists or table freshly created
+}
 
 module.exports = db;

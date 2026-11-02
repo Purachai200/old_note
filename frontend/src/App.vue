@@ -38,8 +38,10 @@
         :notes="notes"
         :selected-note-id="selectedNote ? selectedNote.id : null"
         :is-mobile-detail-active="isMobileDetailActive"
+        :is-creating="isCreating"
         @select-note="selectNote"
         @create-note="handleCreateNote"
+        @toggle-pin="handleTogglePin"
       />
 
       <!-- Right Editor Pane -->
@@ -49,7 +51,10 @@
         :is-mobile-detail-active="isMobileDetailActive"
         @update-note="handleUpdateNote"
         @delete-note="handleDeleteNote"
+        @toggle-pin="handleTogglePin"
         @toggle-item="handleToggleItem"
+        @toggle-all-items="handleToggleAllItems"
+        @clear-completed-items="handleClearCompletedItems"
         @add-item="handleAddItem"
         @update-item="handleUpdateItem"
         @delete-item="handleDeleteItem"
@@ -87,7 +92,8 @@ export default {
       selectedNote: null,
       checklistItems: [],
       syncStatus: 'connecting', // 'connected' | 'connecting' | 'disconnected'
-      isMobileDetailActive: false
+      isMobileDetailActive: false,
+      isCreating: false
     };
   },
   computed: {
@@ -145,7 +151,9 @@ export default {
 
       socket.on('connect', () => {
         this.syncStatus = 'connected';
-        // Re-join note room if a note was selected
+        if (socket.id) {
+          axios.defaults.headers.common['X-Socket-Id'] = socket.id;
+        }
         if (this.selectedNote) {
           socket.emit('join_note', { noteId: this.selectedNote.id });
         }
@@ -168,11 +176,23 @@ export default {
         }
       });
 
+      socket.on('note_pinned_toggled', (data) => {
+        const found = this.notes.find(n => n.id === data.noteId);
+        if (found) {
+          found.is_pinned = data.is_pinned;
+          this.sortNotes();
+        }
+        if (this.selectedNote && this.selectedNote.id === data.noteId) {
+          this.selectedNote.is_pinned = data.is_pinned;
+        }
+      });
+
       socket.on('dashboard_note_updated', (data) => {
         const found = this.notes.find(n => n.id === data.noteId);
         if (found) {
           if (data.title !== undefined) found.title = data.title;
           if (data.updated_at !== undefined) found.updated_at = data.updated_at;
+          this.sortNotes();
         }
       });
 
@@ -184,9 +204,13 @@ export default {
         }
       });
 
+      // Dashboard note creation with strict deduplication
       socket.on('dashboard_note_created', (data) => {
-        if (!this.notes.some(n => n.id === data.note.id)) {
+        if (!data || !data.note) return;
+        const exists = this.notes.some(n => n.id === data.note.id);
+        if (!exists) {
           this.notes.unshift(data.note);
+          this.sortNotes();
         }
       });
 
@@ -205,6 +229,20 @@ export default {
           if (item) {
             item.is_completed = data.is_completed;
           }
+        }
+      });
+
+      socket.on('items_all_toggled', (data) => {
+        if (this.selectedNote && this.selectedNote.id === data.noteId) {
+          this.checklistItems.forEach(i => {
+            i.is_completed = data.is_completed;
+          });
+        }
+      });
+
+      socket.on('items_completed_cleared', (data) => {
+        if (this.selectedNote && this.selectedNote.id === data.noteId) {
+          this.checklistItems = this.checklistItems.filter(i => i.is_completed !== 1);
         }
       });
 
@@ -231,10 +269,19 @@ export default {
         }
       });
     },
+    sortNotes() {
+      this.notes.sort((a, b) => {
+        const pinA = a.is_pinned === 1 ? 1 : 0;
+        const pinB = b.is_pinned === 1 ? 0 : 0;
+        if (pinA !== pinB) return pinB - pinA;
+        return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
+      });
+    },
     async loadNotes() {
       try {
         const res = await axios.get('/api/notes');
-        this.notes = res.data.notes;
+        this.notes = res.data.notes || [];
+        this.sortNotes();
         if (this.notes.length > 0 && !this.selectedNote) {
           this.selectNote(this.notes[0].id);
         }
@@ -262,16 +309,45 @@ export default {
       }
     },
     async handleCreateNote() {
+      if (this.isCreating) return;
+      this.isCreating = true;
+
       try {
         const res = await axios.post('/api/notes', {
           title: 'Untitled Note',
           content: ''
         });
         const newNote = res.data.note;
-        this.notes.unshift(newNote);
+
+        // Add only if not already added by socket
+        if (!this.notes.some(n => n.id === newNote.id)) {
+          this.notes.unshift(newNote);
+          this.sortNotes();
+        }
+
         this.selectNote(newNote.id);
       } catch (err) {
         console.error('Failed to create note', err);
+      } finally {
+        setTimeout(() => {
+          this.isCreating = false;
+        }, 500);
+      }
+    },
+    async handleTogglePin(noteId) {
+      try {
+        const res = await axios.patch(`/api/notes/${noteId}/pin`);
+        const { is_pinned } = res.data;
+        const found = this.notes.find(n => n.id === noteId);
+        if (found) {
+          found.is_pinned = is_pinned;
+          this.sortNotes();
+        }
+        if (this.selectedNote && this.selectedNote.id === noteId) {
+          this.selectedNote.is_pinned = is_pinned;
+        }
+      } catch (err) {
+        console.error('Failed to toggle pin', err);
       }
     },
     handleUpdateNote(payload) {
@@ -316,7 +392,6 @@ export default {
         item.is_completed = is_completed;
       }
 
-      // Optimistic dashboard update
       if (this.selectedNote) {
         const inList = this.notes.find(n => n.id === this.selectedNote.id);
         if (inList) {
@@ -331,6 +406,43 @@ export default {
             is_completed
           });
         }
+      }
+    },
+    handleToggleAllItems(is_completed) {
+      if (!this.selectedNote) return;
+      const val = is_completed ? 1 : 0;
+      this.checklistItems.forEach(i => {
+        i.is_completed = val;
+      });
+
+      const inList = this.notes.find(n => n.id === this.selectedNote.id);
+      if (inList) {
+        inList.completed_items = is_completed ? this.checklistItems.length : 0;
+      }
+
+      const socket = getSocket();
+      if (socket) {
+        socket.emit('items_toggle_all', {
+          noteId: this.selectedNote.id,
+          is_completed: val
+        });
+      }
+    },
+    handleClearCompletedItems() {
+      if (!this.selectedNote) return;
+      this.checklistItems = this.checklistItems.filter(i => i.is_completed !== 1);
+
+      const inList = this.notes.find(n => n.id === this.selectedNote.id);
+      if (inList) {
+        inList.completed_items = 0;
+        inList.total_items = this.checklistItems.length;
+      }
+
+      const socket = getSocket();
+      if (socket) {
+        socket.emit('items_clear_completed', {
+          noteId: this.selectedNote.id
+        });
       }
     },
     handleAddItem({ text, position }) {

@@ -107,6 +107,37 @@ function setupSocketIO(server) {
       io.to(userRoom).emit('dashboard_stats_updated', { noteId, stats });
     });
 
+    // Check all / Uncheck all
+    socket.on('items_toggle_all', ({ noteId, is_completed }) => {
+      if (!noteId) return;
+      const note = db.prepare('SELECT id FROM notes WHERE id = ? AND user_id = ?').get(noteId, userId);
+      if (!note) return;
+
+      const val = is_completed ? 1 : 0;
+      db.prepare('UPDATE checklist_items SET is_completed = ? WHERE note_id = ?').run(val, noteId);
+      db.prepare('UPDATE notes SET updated_at = ? WHERE id = ?').run(new Date().toISOString(), noteId);
+
+      io.to(`note_${noteId}`).emit('items_all_toggled', { noteId, is_completed: val });
+
+      const stats = getNoteStats(noteId);
+      io.to(userRoom).emit('dashboard_stats_updated', { noteId, stats });
+    });
+
+    // Clear completed items
+    socket.on('items_clear_completed', ({ noteId }) => {
+      if (!noteId) return;
+      const note = db.prepare('SELECT id FROM notes WHERE id = ? AND user_id = ?').get(noteId, userId);
+      if (!note) return;
+
+      db.prepare('DELETE FROM checklist_items WHERE note_id = ? AND is_completed = 1').run(noteId);
+      db.prepare('UPDATE notes SET updated_at = ? WHERE id = ?').run(new Date().toISOString(), noteId);
+
+      io.to(`note_${noteId}`).emit('items_completed_cleared', { noteId });
+
+      const stats = getNoteStats(noteId);
+      io.to(userRoom).emit('dashboard_stats_updated', { noteId, stats });
+    });
+
     // Real-time checklist item add
     socket.on('item_add', ({ noteId, text, position }) => {
       if (!noteId || !text) return;

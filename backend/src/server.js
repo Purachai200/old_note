@@ -91,6 +91,7 @@ app.get('/api/notes', authMiddleware, (req, res) => {
         n.id,
         n.title,
         n.content,
+        n.is_pinned,
         n.created_at,
         n.updated_at,
         COUNT(c.id) AS total_items,
@@ -99,7 +100,7 @@ app.get('/api/notes', authMiddleware, (req, res) => {
       LEFT JOIN checklist_items c ON n.id = c.note_id
       WHERE n.user_id = ?
       GROUP BY n.id
-      ORDER BY n.updated_at DESC
+      ORDER BY n.is_pinned DESC, n.updated_at DESC
     `).all(req.user.id);
 
     return res.json({ notes });
@@ -126,8 +127,14 @@ app.post('/api/notes', authMiddleware, (req, res) => {
       FROM notes WHERE id = ?
     `).get(result.lastInsertRowid);
 
-    // Notify connected client sessions of new note
-    req.io.to(`user_${req.user.id}`).emit('dashboard_note_created', { note });
+    // Broadcast only to other sockets of this user (excluding sender if socket-id header provided)
+    // or frontend will de-duplicate by note.id
+    const senderSocketId = req.headers['x-socket-id'];
+    if (senderSocketId && req.io.sockets.sockets.get(senderSocketId)) {
+      req.io.sockets.sockets.get(senderSocketId).to(`user_${req.user.id}`).emit('dashboard_note_created', { note });
+    } else {
+      req.io.to(`user_${req.user.id}`).emit('dashboard_note_created', { note });
+    }
 
     return res.status(201).json({ note });
   } catch (err) {
@@ -141,7 +148,7 @@ app.get('/api/notes/:id', authMiddleware, (req, res) => {
   const noteId = req.params.id;
   try {
     const note = db.prepare(`
-      SELECT id, user_id, title, content, created_at, updated_at
+      SELECT id, user_id, title, content, is_pinned, created_at, updated_at
       FROM notes
       WHERE id = ? AND user_id = ?
     `).get(noteId, req.user.id);
@@ -161,6 +168,27 @@ app.get('/api/notes/:id', authMiddleware, (req, res) => {
   } catch (err) {
     console.error('Error fetching note details:', err);
     return res.status(500).json({ error: 'Failed to retrieve note.' });
+  }
+});
+
+// Toggle Pin status
+app.patch('/api/notes/:id/pin', authMiddleware, (req, res) => {
+  const noteId = req.params.id;
+  try {
+    const note = db.prepare('SELECT id, is_pinned FROM notes WHERE id = ? AND user_id = ?').get(noteId, req.user.id);
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found.' });
+    }
+
+    const newPinned = note.is_pinned === 1 ? 0 : 1;
+    db.prepare('UPDATE notes SET is_pinned = ? WHERE id = ?').run(newPinned, noteId);
+
+    req.io.to(`user_${req.user.id}`).emit('note_pinned_toggled', { noteId: Number(noteId), is_pinned: newPinned });
+
+    return res.json({ id: Number(noteId), is_pinned: newPinned });
+  } catch (err) {
+    console.error('Error toggling pin:', err);
+    return res.status(500).json({ error: 'Failed to toggle pin.' });
   }
 });
 

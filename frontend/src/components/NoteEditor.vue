@@ -22,13 +22,34 @@
           </span>
         </div>
 
-        <button
-          class="btn btn-danger"
-          style="padding: 6px 12px; font-size: 13px;"
-          @click="confirmDeleteNote"
-        >
-          Delete Note
-        </button>
+        <div style="display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center;">
+          <!-- Pin button -->
+          <button
+            class="btn btn-secondary"
+            style="padding: 6px 12px; font-size: 13px; margin-right: 8px;"
+            :class="{ 'btn-pinned': note.is_pinned === 1 }"
+            @click="$emit('toggle-pin', note.id)"
+          >
+            {{ note.is_pinned === 1 ? '📌 Pinned' : '📍 Pin' }}
+          </button>
+
+          <!-- Copy text button -->
+          <button
+            class="btn btn-secondary"
+            style="padding: 6px 12px; font-size: 13px; margin-right: 8px;"
+            @click="copyFullContent"
+          >
+            {{ copySuccess ? '✓ Copied!' : '📋 Copy All' }}
+          </button>
+
+          <button
+            class="btn btn-danger"
+            style="padding: 6px 12px; font-size: 13px;"
+            @click="confirmDeleteNote"
+          >
+            Delete
+          </button>
+        </div>
       </div>
 
       <!-- Note Title -->
@@ -41,9 +62,15 @@
       />
 
       <!-- Voiceover / Agenda Script Text Notes -->
-      <div class="section-title">
-        Script & Agenda Notes
+      <div style="display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-pack: justify; -webkit-justify-content: space-between; -webkit-box-align: center; -webkit-align-items: center; align-items: center; margin-bottom: 8px;">
+        <div class="section-title" style="margin-bottom: 0;">
+          Script & Agenda Notes
+        </div>
+        <div style="font-size: 12px; color: #9ca3af;">
+          {{ wordCount }} words · {{ charCount }} chars
+        </div>
       </div>
+
       <textarea
         v-model="localContent"
         class="notes-textarea"
@@ -53,8 +80,36 @@
 
       <!-- Checklist Items Section -->
       <div class="checklist-section">
-        <div class="section-title">
-          Interactive Checklist ({{ completedCount }} / {{ items.length }} Completed)
+        <div style="display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-pack: justify; -webkit-justify-content: space-between; -webkit-box-align: center; -webkit-align-items: center; align-items: center; margin-bottom: 10px; -webkit-flex-wrap: wrap; flex-wrap: wrap;">
+          <div class="section-title" style="margin-bottom: 0;">
+            Interactive Checklist ({{ completedCount }} / {{ items.length }} Completed)
+          </div>
+
+          <!-- Quick Action Buttons for Checklists -->
+          <div v-if="items.length > 0" class="checklist-quick-actions">
+            <button
+              type="button"
+              class="quick-action-btn"
+              @click="$emit('toggle-all-items', true)"
+            >
+              ✓ Check All
+            </button>
+            <button
+              type="button"
+              class="quick-action-btn"
+              @click="$emit('toggle-all-items', false)"
+            >
+              ○ Uncheck All
+            </button>
+            <button
+              v-if="completedCount > 0"
+              type="button"
+              class="quick-action-btn text-danger"
+              @click="$emit('clear-completed-items')"
+            >
+              ✕ Clear Done ({{ completedCount }})
+            </button>
+          </div>
         </div>
 
         <!-- Add Item Form -->
@@ -63,20 +118,20 @@
             v-model="newItemText"
             type="text"
             class="item-input"
-            placeholder="Add new checklist item..."
+            placeholder="Type checklist task and press Enter..."
           />
           <button
             type="submit"
             class="add-item-btn"
             :disabled="!newItemText.trim()"
           >
-            + Add Item
+            + Add Task
           </button>
         </form>
 
         <!-- Checklist List -->
         <div v-if="items.length === 0" class="empty-state" style="padding: 20px 0;">
-          <p style="font-size: 14px;">No checklist items yet.</p>
+          <p style="font-size: 14px; color: #9ca3af;">No checklist items yet.</p>
         </div>
 
         <div
@@ -102,6 +157,7 @@
             :value="item.text"
             type="text"
             class="item-text-input"
+            placeholder="Item description..."
             @input="updateItemText(item, $event.target.value)"
           />
 
@@ -140,7 +196,10 @@ export default {
   emits: [
     'update-note',
     'delete-note',
+    'toggle-pin',
     'toggle-item',
+    'toggle-all-items',
+    'clear-completed-items',
     'add-item',
     'update-item',
     'delete-item',
@@ -152,12 +211,21 @@ export default {
       localContent: '',
       newItemText: '',
       titleDebounceTimer: null,
-      contentDebounceTimer: null
+      contentDebounceTimer: null,
+      copySuccess: false
     };
   },
   computed: {
     completedCount() {
       return this.items.filter(item => item.is_completed === 1).length;
+    },
+    charCount() {
+      return (this.localContent || '').length;
+    },
+    wordCount() {
+      const text = (this.localContent || '').trim();
+      if (!text) return 0;
+      return text.split(/\s+/).length;
     }
   },
   watch: {
@@ -219,6 +287,52 @@ export default {
       if (window.confirm('Are you sure you want to delete this note and its checklist?')) {
         this.$emit('delete-note', this.note.id);
       }
+    },
+    copyFullContent() {
+      let textToCopy = (this.localTitle || 'Untitled Note') + '\n\n';
+      if (this.localContent) {
+        textToCopy += this.localContent + '\n\n';
+      }
+      if (this.items.length > 0) {
+        textToCopy += '--- Checklist ---\n';
+        this.items.forEach(item => {
+          const mark = item.is_completed === 1 ? '[x] ' : '[ ] ';
+          textToCopy += mark + item.text + '\n';
+        });
+      }
+
+      // Legacy-safe clipboard copy (supports Safari 9 & modern)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          this.flashCopy();
+        }).catch(() => {
+          this.fallbackCopy(textToCopy);
+        });
+      } else {
+        this.fallbackCopy(textToCopy);
+      }
+    },
+    fallbackCopy(text) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        this.flashCopy();
+      } catch (err) {
+        // ignore
+      }
+      document.body.removeChild(textArea);
+    },
+    flashCopy() {
+      this.copySuccess = true;
+      setTimeout(() => {
+        this.copySuccess = false;
+      }, 2000);
     }
   }
 };
